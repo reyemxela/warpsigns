@@ -1,0 +1,10 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.reyemxela.warpsigns.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": ["SignBlockMixin", "WallSignBlockMixin"],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
