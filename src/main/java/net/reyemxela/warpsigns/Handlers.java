@@ -17,7 +17,7 @@ import net.reyemxela.warpsigns.utils.Pairing;
 import net.reyemxela.warpsigns.utils.Save;
 
 public class Handlers {
-    public static void serverLoadHandler(MinecraftServer server, ServerWorld ignoredWorld) {
+    public static void serverLoadHandler(MinecraftServer server) {
         WarpSigns.serverInstance = server;
         Save.initialize();
     }

@@ -1,7 +1,7 @@
 package net.reyemxela.warpsigns;
 
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.server.MinecraftServer;
@@ -19,7 +19,7 @@ public class WarpSigns implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        ServerWorldEvents.LOAD.register(Handlers::serverLoadHandler);
+        ServerLifecycleEvents.SERVER_STARTED.register(Handlers::serverLoadHandler);
 
         UseBlockCallback.EVENT.register(Handlers::clickHandler);
 
