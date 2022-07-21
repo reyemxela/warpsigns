@@ -20,17 +20,18 @@ import net.reyemxela.warpsigns.WarpSigns;
 import net.reyemxela.warpsigns.config.Config;
 
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
 public class Pairing {
-    public static final HashMap<String, PairingInfo> playerPairing = new HashMap<>();
+    public static final HashMap<String, PairingInfo> playerPairingSign = new HashMap<>();
+    public static final HashMap<String, String> signPairingPlayer = new HashMap<>();
     public static final String globalPairingName = "__GLOBAL_PAIRING__";
     private static ServerPlayerEntity globalPairingPlayer;
 
     public static void startPairing(ServerPlayerEntity player, String pairingName, SignBlockEntity signEntity, Coords signCoords) {
         PairingInfo startInfo = new PairingInfo(signCoords, signEntity);
-        playerPairing.put(pairingName, startInfo);
+        playerPairingSign.put(pairingName, startInfo);
+        signPairingPlayer.put(startInfo.getKey(), pairingName);
 
         if (Objects.equals(pairingName, globalPairingName)) {
             globalPairingPlayer = player; // keep track of both players to notify when pairing is finished
@@ -42,7 +43,7 @@ public class Pairing {
     }
 
     public static void finishPairing(ServerPlayerEntity player, String pairingName, SignBlockEntity signEntity, Coords signCoords) {
-        PairingInfo startInfo = playerPairing.get(pairingName);
+        PairingInfo startInfo = playerPairingSign.get(pairingName);
         PairingInfo endInfo = new PairingInfo(signCoords, signEntity);
         WarpSigns.warpSignData.put(startInfo.getKey(), endInfo);
         WarpSigns.warpSignData.put(endInfo.getKey(), startInfo);
@@ -62,47 +63,51 @@ public class Pairing {
                 endInfo.pairedSign.getWorld()));
 
         player.getMainHandStack().decrement(1);
-        playerPairing.remove(pairingName);
+        playerPairingSign.remove(pairingName);
+        signPairingPlayer.remove(startInfo.getKey());
         Save.saveData();
     }
 
     public static ActionResult useSign(ServerPlayerEntity player, World world, Hand hand, SignBlockEntity sign, BlockPos pos) {
         Coords signCoords = new Coords(pos.getX(), pos.getY(), pos.getZ(), (ServerWorld)world);
+        String signKey = signCoords.getKey();
         Item heldItem = player.getStackInHand(hand).getItem();
 
-        boolean isPaired = WarpSigns.warpSignData.containsKey(signCoords.getKey());
+        boolean isSignPairing = signPairingPlayer.containsKey(signKey);
+        boolean isSignPaired = WarpSigns.warpSignData.containsKey(signKey);
         boolean holdingPairingItem = heldItem == Registry.ITEM.get(Identifier.tryParse(Config.pairingItem));
         boolean holdingAir = heldItem == Items.AIR;
         boolean isSneaking = player.isSneaking();
 
         if (holdingPairingItem) {
-            if (isPaired) {
+            String pairingName = isSneaking ? globalPairingName : player.getName().getString();
+            boolean isPlayerPairing = playerPairingSign.containsKey(pairingName);
+
+            if (isSignPaired) {
                 return ActionResult.PASS;
             }
 
-            String pairingName;
-            if (isSneaking) {
-                pairingName = Pairing.globalPairingName;
-            } else {
-                pairingName = player.getName().getString();
+            if (isSignPairing) {
+                if (Objects.equals(signPairingPlayer.get(signKey), player.getName().getString())) {
+                    playerPairingSign.remove(pairingName); // same player clicked same sign, cancel pairing
+                    signPairingPlayer.remove(signKey);
+                    player.sendMessage(Text.of("Cancelled pairing"));
+                }
+                return ActionResult.PASS;
             }
 
-            if (Pairing.playerPairing.containsKey(pairingName)) {
-                if (Objects.equals(Pairing.playerPairing.get(pairingName).pairedSign.getKey(), signCoords.getKey())) {
-                    Pairing.playerPairing.remove(pairingName); // same player clicked same sign, cancel pairing
-                    player.sendMessage(Text.of("Cancelled pairing"));
-                } else {
-                    Pairing.finishPairing(player, pairingName, sign, signCoords);
-                }
+            if (isPlayerPairing) {
+                finishPairing(player, pairingName, sign, signCoords);
             } else {
-                Pairing.startPairing(player, pairingName, sign, signCoords);
+                startPairing(player, pairingName, sign, signCoords);
             }
+
             return ActionResult.SUCCESS;
         } else if (holdingAir) {
             if (isSneaking) {
                 EditSign.editSign(player, sign);
                 return ActionResult.CONSUME;
-            } else if (isPaired) {
+            } else if (isSignPaired) {
                 Teleport.teleport(player, signCoords);
                 return ActionResult.SUCCESS;
             } else {
@@ -115,33 +120,34 @@ public class Pairing {
 
     public static boolean breakSign(ServerWorld world, ServerPlayerEntity player, BlockPos pos) {
         Coords brokenSignCoords = new Coords(pos.getX(), pos.getY(), pos.getZ(), world);
-        if (WarpSigns.warpSignData.containsKey(brokenSignCoords.getKey())) {
+        String brokenSignKey = brokenSignCoords.getKey();
+        boolean isSignPaired = WarpSigns.warpSignData.containsKey(brokenSignKey);
+        boolean isSignPairing = signPairingPlayer.containsKey(brokenSignKey);
+        if (isSignPaired) {
+            PairingInfo otherSignInfo = WarpSigns.warpSignData.get(brokenSignKey);
             if (player != null) {
                 if (player.isSneaking()) {
                     String pairingName = player.getName().getString();
-                    if (playerPairing.containsKey(pairingName)) {
+                    if (playerPairingSign.containsKey(pairingName)) {
                         player.sendMessage(Text.of("Pairing already in progress, can't start re-pairing"));
                         return false;
                     }
-                    playerPairing.put(pairingName, WarpSigns.warpSignData.get(brokenSignCoords.getKey()));
+                    playerPairingSign.put(pairingName, otherSignInfo);
+                    signPairingPlayer.put(otherSignInfo.getKey(), pairingName);
                     player.sendMessage(Text.of("Re-pairing"));
                 } else {
                     player.sendMessage(Text.of("Warp Sign removed"));
                 }
             }
-            WarpSigns.warpSignData.remove(WarpSigns.warpSignData.get(brokenSignCoords.getKey()).pairedSign.getKey());
-            WarpSigns.warpSignData.remove(brokenSignCoords.getKey());
+            WarpSigns.warpSignData.remove(otherSignInfo.getKey());
+            WarpSigns.warpSignData.remove(brokenSignKey);
             ItemStack stack = new ItemStack(Registry.ITEM.get(Identifier.tryParse(Config.pairingItem)));
             ItemEntity itemEntity = new ItemEntity(world, pos.getX(), pos.getY(), pos.getZ(), stack);
             world.spawnEntity(itemEntity);
             Save.saveData();
-        } else {
-            for (Map.Entry<String, PairingInfo> p : playerPairing.entrySet()) {
-                if (Objects.equals(p.getValue().pairedSign.getKey(), brokenSignCoords.getKey())) {
-                    playerPairing.remove(p.getKey());
-                    break;
-                }
-            }
+        } else if (isSignPairing) {
+            playerPairingSign.remove(signPairingPlayer.get(brokenSignKey));
+            signPairingPlayer.remove(brokenSignKey);
         }
         return true;
     }

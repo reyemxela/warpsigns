@@ -24,6 +24,7 @@ public class Handlers {
 
     public static ActionResult clickHandler(PlayerEntity player, World world, Hand hand, BlockHitResult hit) {
         if (world.isClient) { return ActionResult.PASS; }
+        if (hand != Hand.MAIN_HAND) { return ActionResult.PASS; }
         BlockPos pos = hit.getBlockPos();
         if (!(world.getBlockEntity(pos) instanceof SignBlockEntity sign)) { return ActionResult.PASS; }
 
