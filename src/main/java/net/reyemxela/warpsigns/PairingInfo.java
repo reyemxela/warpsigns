@@ -7,6 +7,7 @@ import net.minecraft.block.WallSignBlock;
 import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.property.Property;
+import net.minecraft.util.math.Direction;
 
 import java.util.Collection;
 
@@ -55,17 +56,17 @@ public class PairingInfo {
         Coords newCoords = new Coords(coords);
 
         switch (facing) {
-            case 0 -> newCoords.setZ(newCoords.getZ() + warpOffset);
-            case 90 -> newCoords.setX(newCoords.getX() - warpOffset);
-            case 180 -> newCoords.setZ(newCoords.getZ() - warpOffset);
-            case 270 -> newCoords.setX(newCoords.getX() + warpOffset);
+            case 0 -> newCoords = newCoords.offset(Direction.SOUTH, warpOffset);
+            case 90 -> newCoords = newCoords.offset(Direction.WEST, warpOffset);
+            case 180 -> newCoords = newCoords.offset(Direction.NORTH, warpOffset);
+            case 270 -> newCoords = newCoords.offset(Direction.EAST, warpOffset);
         }
 
         if (isEmpty(newCoords)) {
             for (int i = 0; i < 5; i++) {
-                if (!isEmpty(newCoords.offset(0, -i, 0))) {
+                if (!isEmpty(newCoords.offset(Direction.DOWN, i))) {
                     // found ground, go back up one
-                    return newCoords.offset(0, -i + 1, 0);
+                    return newCoords.offset(Direction.DOWN, i - 1);
                 }
             }
         }
@@ -75,7 +76,7 @@ public class PairingInfo {
 
     private boolean isEmpty(Coords coords) {
         ServerWorld world = coords.getWorld();
-        return world.getBlockState(coords.getBlockPos()).getBlock() == Blocks.AIR
-                && world.getBlockState(coords.offset(0, 1, 0).getBlockPos()).getBlock() == Blocks.AIR;
+        return world.getBlockState(coords).getBlock() == Blocks.AIR
+                && world.getBlockState(coords.offset(Direction.UP, 1)).getBlock() == Blocks.AIR;
     }
 }

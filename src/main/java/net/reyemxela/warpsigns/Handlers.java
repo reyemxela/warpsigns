@@ -13,17 +13,20 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.reyemxela.warpsigns.config.Config;
 import net.reyemxela.warpsigns.utils.Pairing;
 import net.reyemxela.warpsigns.utils.Save;
 
 public class Handlers {
-    public static void serverLoadHandler(MinecraftServer server, ServerWorld ignoredWorld) {
+    public static void serverLoadHandler(MinecraftServer server) {
         WarpSigns.serverInstance = server;
         Save.initialize();
+        Config.initialize();
     }
 
     public static ActionResult clickHandler(PlayerEntity player, World world, Hand hand, BlockHitResult hit) {
         if (world.isClient) { return ActionResult.PASS; }
+        if (hand != Hand.MAIN_HAND) { return ActionResult.PASS; }
         BlockPos pos = hit.getBlockPos();
         if (!(world.getBlockEntity(pos) instanceof SignBlockEntity sign)) { return ActionResult.PASS; }
 

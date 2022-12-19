@@ -46,15 +46,15 @@ public class Save {
         loadData();
     }
 
-    public static void loadData() {
+    private static void loadData() {
         try {
             var reader = new FileReader(dataFile);
             Type mapType = new TypeToken<HashMap<String, PairingInfo>>(){}.getType();
             WarpSigns.warpSignData = gson.fromJson(reader, mapType);
             reader.close();
-            WarpSigns.LOGGER.info("Loaded warpSignData from file");
+            WarpSigns.LOGGER.info("Loaded warpSign save from file");
         } catch (IOException | JsonSyntaxException | JsonIOException err) {
-            WarpSigns.LOGGER.info("Creating new config");
+            WarpSigns.LOGGER.info("Creating new save file");
             WarpSigns.warpSignData = new HashMap<>();
             saveData();
         }
@@ -65,9 +65,9 @@ public class Save {
             var writer = new FileWriter(dataFile);
             gson.toJson(WarpSigns.warpSignData, writer);
             writer.close();
-            WarpSigns.LOGGER.info("Saved warpSignData");
+            WarpSigns.LOGGER.info("Saved warpSign save file");
         } catch (IOException | JsonIOException err) {
-            WarpSigns.LOGGER.error("Unable to create warpSignData save file!");
+            WarpSigns.LOGGER.error("Unable to create warpSign save file!");
         }
     }
 }
