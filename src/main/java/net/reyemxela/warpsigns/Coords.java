@@ -1,11 +1,11 @@
 package net.reyemxela.warpsigns;
 
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryKey;
 
 import java.util.Arrays;
 
@@ -39,5 +39,5 @@ public class Coords extends BlockPos {
     }
 
     private String worldToStr() { return world.getDimensionKey().getValue().toString(); }
-    private static ServerWorld strToWorld(String world) { return WarpSigns.serverInstance.getWorld(RegistryKey.of(Registry.WORLD_KEY, Identifier.tryParse(world))); }
+    private static ServerWorld strToWorld(String world) { return WarpSigns.serverInstance.getWorld(RegistryKey.of(RegistryKeys.WORLD, Identifier.tryParse(world))); }
 }

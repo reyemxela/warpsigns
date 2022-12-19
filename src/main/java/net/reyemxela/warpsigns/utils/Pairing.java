@@ -5,6 +5,7 @@ import net.minecraft.entity.ItemEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -12,7 +13,6 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.world.World;
 import net.reyemxela.warpsigns.Coords;
 import net.reyemxela.warpsigns.PairingInfo;
@@ -74,7 +74,7 @@ public class Pairing {
 
         boolean isSignPairing = signPairingPlayer.containsKey(signKey);
         boolean isSignPaired = WarpSigns.warpSignData.containsKey(signKey);
-        boolean holdingPairingItem = heldItem == Registry.ITEM.get(Identifier.tryParse(WarpSigns.config.pairingItem));
+        boolean holdingPairingItem = heldItem == Registries.ITEM.get(Identifier.tryParse(WarpSigns.config.pairingItem));
         boolean holdingAir = heldItem == Items.AIR;
         boolean isSneaking = player.isSneaking();
 
@@ -156,7 +156,7 @@ public class Pairing {
             }
             WarpSigns.warpSignData.remove(otherSignInfo.getKey());
             WarpSigns.warpSignData.remove(brokenSignKey);
-            ItemStack stack = new ItemStack(Registry.ITEM.get(Identifier.tryParse(WarpSigns.config.pairingItem)));
+            ItemStack stack = new ItemStack(Registries.ITEM.get(Identifier.tryParse(WarpSigns.config.pairingItem)));
             ItemEntity itemEntity = new ItemEntity(world, pos.getX(), pos.getY(), pos.getZ(), stack);
             world.spawnEntity(itemEntity);
             Save.saveData();
