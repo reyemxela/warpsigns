@@ -17,7 +17,6 @@ import net.minecraft.world.World;
 import net.reyemxela.warpsigns.Coords;
 import net.reyemxela.warpsigns.PairingInfo;
 import net.reyemxela.warpsigns.WarpSigns;
-import net.reyemxela.warpsigns.config.Config;
 
 import java.util.HashMap;
 import java.util.Objects;
@@ -75,7 +74,7 @@ public class Pairing {
 
         boolean isSignPairing = signPairingPlayer.containsKey(signKey);
         boolean isSignPaired = WarpSigns.warpSignData.containsKey(signKey);
-        boolean holdingPairingItem = heldItem == Registry.ITEM.get(Identifier.tryParse(Config.pairingItem));
+        boolean holdingPairingItem = heldItem == Registry.ITEM.get(Identifier.tryParse(WarpSigns.config.pairingItem));
         boolean holdingAir = heldItem == Items.AIR;
         boolean isSneaking = player.isSneaking();
 
@@ -84,6 +83,10 @@ public class Pairing {
             boolean isPlayerPairing = playerPairingSign.containsKey(pairingName);
 
             if (isSignPaired) {
+                return ActionResult.PASS;
+            }
+            if (!isAllowed(player)) {
+                player.sendMessage(Text.of("You don't have permission to pair signs"));
                 return ActionResult.PASS;
             }
 
@@ -105,8 +108,12 @@ public class Pairing {
             return ActionResult.SUCCESS;
         } else if (holdingAir) {
             if (isSneaking) {
-                EditSign.editSign(player, sign);
-                return ActionResult.CONSUME;
+                if (!isSignPaired || isAllowed(player)) {
+                    EditSign.editSign(player, sign);
+                    return ActionResult.CONSUME;
+                } else {
+                    player.sendMessage(Text.of("You don't have permission to edit this sign"));
+                }
             } else if (isSignPaired) {
                 Teleport.teleport(player, signCoords);
                 return ActionResult.SUCCESS;
@@ -119,6 +126,10 @@ public class Pairing {
     }
 
     public static boolean breakSign(ServerWorld world, ServerPlayerEntity player, BlockPos pos) {
+        // TODO:
+        //  when cancelling a sign break, the client will desync and not show the text on the sign.
+        //  the text is still there, and disconnecting/reconnecting to the server will show it again.
+        //  not sure if this is something that can easily be fixed or not.
         Coords brokenSignCoords = new Coords(pos.getX(), pos.getY(), pos.getZ(), world);
         String brokenSignKey = brokenSignCoords.getKey();
         boolean isSignPaired = WarpSigns.warpSignData.containsKey(brokenSignKey);
@@ -126,6 +137,10 @@ public class Pairing {
         if (isSignPaired) {
             PairingInfo otherSignInfo = WarpSigns.warpSignData.get(brokenSignKey);
             if (player != null) {
+                if (!isAllowed(player)) {
+                    player.sendMessage(Text.of("You don't have permission to break this sign"));
+                    return false;
+                }
                 if (player.isSneaking()) {
                     String pairingName = player.getName().getString();
                     if (playerPairingSign.containsKey(pairingName)) {
@@ -141,14 +156,21 @@ public class Pairing {
             }
             WarpSigns.warpSignData.remove(otherSignInfo.getKey());
             WarpSigns.warpSignData.remove(brokenSignKey);
-            ItemStack stack = new ItemStack(Registry.ITEM.get(Identifier.tryParse(Config.pairingItem)));
+            ItemStack stack = new ItemStack(Registry.ITEM.get(Identifier.tryParse(WarpSigns.config.pairingItem)));
             ItemEntity itemEntity = new ItemEntity(world, pos.getX(), pos.getY(), pos.getZ(), stack);
             world.spawnEntity(itemEntity);
             Save.saveData();
         } else if (isSignPairing) {
+            if (player != null && !isAllowed(player)) {
+                player.sendMessage(Text.of("You don't have permission to break this sign"));
+            }
             playerPairingSign.remove(signPairingPlayer.get(brokenSignKey));
             signPairingPlayer.remove(brokenSignKey);
         }
         return true;
+    }
+
+    private static boolean isAllowed(ServerPlayerEntity player) {
+        return !WarpSigns.config.adminOnly || WarpSigns.serverInstance.getPlayerManager().isOperator(player.getGameProfile());
     }
 }
